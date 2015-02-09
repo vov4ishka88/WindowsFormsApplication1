@@ -7,7 +7,7 @@ using System.Drawing;
 
 namespace WindowsFormsApplication1
 {
-    class Ball
+    abstract class Ball
     {
         int radiusOfAttack;
 
@@ -16,16 +16,16 @@ namespace WindowsFormsApplication1
             get { return radiusOfAttack; }
             set { radiusOfAttack = value; }
         }
-        int level = 1;
-        int expiriance = 0;
-        int healthPoints = 0;
+        protected int level = 1;
+        protected int expiriance = 0;
+        protected int healthPoints = 0;
         int att;
         int def;
-        Bitmap picture;
+        protected Bitmap picture;
         static Random rnd = new Random();
-        Weapon weapon;
+        protected Weapon weapon;
 
-        Point cordinations;
+        protected Point cordinations;
 
         public Point Cordinations
         {
@@ -38,9 +38,8 @@ namespace WindowsFormsApplication1
         {
             get { return target; }
             set { target = value; }
-        }
-        Brush color;
-        Size size;
+        }        
+        protected Size size;
 
         public Size Size
         {
@@ -48,76 +47,60 @@ namespace WindowsFormsApplication1
             set { size = value; }
         }
 
-        public Ball(Color color) {
-            calcProperties();
-            this.color = new SolidBrush(color);
-            size = new Size(picture.Width, picture.Height);
+        public Ball() {
+            calcProperties();            
+            //size = new Size(picture.Width, picture.Height);
            
         }
 
-        public void paint(Graphics g) {
-            if (target.X > cordinations.X) cordinations.X++;
-            if (target.X < cordinations.X) cordinations.X--;
-            if (target.Y > cordinations.Y) cordinations.Y++;
-            if (target.Y < cordinations.Y) cordinations.Y--;
-            // g.FillEllipse(color, new Rectangle(cordinations, size));
-            g.DrawImage(picture, cordinations);
-            int healt = 30 * healthPoints / (80 + level * 20);
-            int expir = 30 * expiriance / (level * level * 100);
-            // g.DrawString(healthPoints + "/" + level + "/" + expiriance, SystemFonts.SmallCaptionFont, Brushes.Black, new Point(cordinations.X - 12, cordinations.Y + 23));
-            g.FillRectangle(Brushes.DarkMagenta, new Rectangle(cordinations.X-5, cordinations.Y+23, 32, 4));
-            g.FillRectangle(Brushes.Red, new Rectangle(cordinations.X - 4, cordinations.Y + 24, healt, 2));
-            
-            g.FillRectangle(Brushes.DarkMagenta, new Rectangle(cordinations.X - 5, cordinations.Y + 28, 32, 4));
-            g.FillRectangle(Brushes.Gold, new Rectangle(cordinations.X - 4, cordinations.Y + 29, expir, 2));
-
-            g.DrawString(level.ToString(), SystemFonts.SmallCaptionFont, Brushes.White, new Point(cordinations.X + 5, cordinations.Y + 2));
-
-
-
-        }
+        public abstract void paint(Graphics g);
 
         private void calcProperties() 
-        {
-            if (expiriance >= level * level * 100) 
-            {
-                expiriance -= level * level * 100;
-                level++;
-            }
+        {            
             if (healthPoints <= 0) 
             {
-                healthPoints = 80 + level * 20;
+                healthPoints = maxHP();
+                if (weapon != null) dropWeapon();
                 cordinations = new Point(rnd.Next(800), rnd.Next(600));
                 target = cordinations;
             }
+            if (expiriance >= maxEXP())
+            {
+                expiriance -= maxEXP();
+                level++;
+            }
             if (weapon != null)
             {
-                att = (20 + level * 20) * weapon.PowerOfDistraction;
-                picture = WindowsFormsApplication1.Properties.Resources.Hero_with_sword;
-                radiusOfAttack = picture.Width + weapon.Radius;                
+                att = maxHP() + weapon.PowerOfDistraction;                
+                radiusOfAttack = size.Width + weapon.Radius;                
             }
             else { 
-                att = (20 + level * 20);                
-                picture = WindowsFormsApplication1.Properties.Resources.Empty_handed_Hero;
-                radiusOfAttack = picture.Width;
+                att = maxHP();                            
+                radiusOfAttack = size.Width;
             }         
-            def = 80 + level * 20;            
+            def = maxHP();            
             
         }
 
         public void attack(Ball enemy) 
         {
-            int a = rnd.Next(att);
-            bool victory = enemy.defence(a);
-            if (victory)
+            if (checkCollision(enemy))
             {
-                expiriance += 50 * enemy.level / this.level;
-                calcProperties();
+
+
+                int a = rnd.Next(att);
+                bool victory = enemy.defence(a);
+                if (victory)
+                {
+                    expiriance += 50 * enemy.level / this.level;
+                    calcProperties();
+                }
+                else
+                {
+                    enemy.attack(this);
+                }
             }
-            else 
-            {
-                enemy.attack(this);
-            }
+            else enemy.attack(this);
         }
         public bool defence(int a) 
         {
@@ -132,6 +115,7 @@ namespace WindowsFormsApplication1
         }
         public void takeWeapon(Weapon weapon) 
         {
+            if (this.weapon != null) dropWeapon();
             this.weapon = weapon;
             weapon.Taken = true;
             calcProperties();
@@ -139,9 +123,31 @@ namespace WindowsFormsApplication1
         public void dropWeapon() 
         {
             weapon.Taken = false;
-            weapon.Position = new Point(cordinations.X + 30, cordinations.Y + 30);
+            weapon.Position = new Point(cordinations.X + size.Width + 10, cordinations.Y + size.Height + 10);
             weapon = null;
             calcProperties();
+        }
+        protected int maxHP() 
+        {
+            return 80 + level * 20;
+        }
+        protected int maxEXP() 
+        {
+            return level * level * 100;
+        }
+        public bool checkCollision(Ball enemy)
+        {
+            return (Cordinations.X > enemy.Cordinations.X - RadiusOfAttack
+                && Cordinations.X < enemy.Cordinations.X + RadiusOfAttack
+                && Cordinations.Y > enemy.Cordinations.Y - RadiusOfAttack
+                && Cordinations.Y < enemy.Cordinations.Y + RadiusOfAttack);                
+        }
+        
+        public bool checkCollisionWithWeapon(Weapon w)
+        {
+            return (Cordinations.X < w.Position.X && Cordinations.X + Size.Width > w.Position.X + w.Size.Width
+                && Cordinations.Y < w.Position.Y && Cordinations.Y + Size.Height > w.Position.Y + w.Size.Height);           
+
         }
     }
 }

@@ -7,7 +7,7 @@ using System.Drawing;
 
 namespace WindowsFormsApplication1
 {
-    class Weapon
+    abstract class Weapon
     {
         Point position;
 
@@ -37,7 +37,7 @@ namespace WindowsFormsApplication1
             get { return taken; }
             set { taken = value; }
         }
-        Size size;
+        protected Size size;
 
         public Size Size
         {
@@ -55,9 +55,6 @@ namespace WindowsFormsApplication1
             size = new Size(15, 15);
         }
 
-        public void Paint(Graphics g) 
-        {
-            if (!taken) g.FillRectangle(Brushes.Black, new Rectangle(position, new Size(15, 15)));
-        }
+        public abstract void Paint(Graphics g);
     }
 }
